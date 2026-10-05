@@ -1,0 +1,30 @@
+{
+	"name": "pi-token-diet",
+	"version": "0.1.0",
+	"description": "Deterministic payload-level token trims: drops the pi documentation block, caps tool and parameter descriptions, and shortens skill descriptions.",
+	"type": "module",
+	"license": "MIT",
+	"keywords": [
+		"pi",
+		"pi-package",
+		"tokens",
+		"prompt-cache",
+		"trimming"
+	],
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/hakergeniusz/pi-token-diet.git"
+	},
+	"bugs": {
+		"url": "https://github.com/hakergeniusz/pi-token-diet/issues"
+	},
+	"homepage": "https://github.com/hakergeniusz/pi-token-diet#readme",
+	"pi": {
+		"extensions": [
+			"./token-diet.ts"
+		]
+	},
+	"peerDependencies": {
+		"@earendil-works/pi-coding-agent": "*"
+	}
+}
