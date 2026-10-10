@@ -6,12 +6,68 @@
 //   - "Pi documentation" block in the system prompt (~309 tok) — only relevant
 //     when working on pi itself
 //   - tool descriptions capped (~220 chars) + JSON-schema property
-//     descriptions capped (~100 chars) across every declared tool
+//     descriptions capped (~72 chars) across every declared tool
+//   - canned short replacements for known verbose boilerplate descriptions
 //   - <available_skills> descriptions to their first sentence (~140 chars)
 
 const TOOL_DESC_CAP = 220;
-const PARAM_DESC_CAP = 100;
+const PARAM_DESC_CAP = 72;
 const SKILL_DESC_CAP = 140;
+
+// Exact-match rewrites for boilerplate whose full text costs more tokens than
+// its information is worth. Matched against the unescaped description; a
+// non-matching string falls through to the cap logic, so pi updates that
+// reword these texts simply lose the shortcut, not the trim.
+const DESCRIPTION_REWRITES: Array<[string, string]> = [
+	[
+		"Edit a single file using exact text replacement. Every edits[].oldText must match a unique, non-overlapping region of the original file. If two changes affect the same block or nearby lines, merge them into one edit instead of emitting overlapping edits. Do not include large unchanged regions just to connect distant changes.",
+		"Edit a file with exact replacements.",
+	],
+	[
+		"Write content to a file. Creates the file if it doesn't exist, overwrites if it does. Automatically creates parent directories.",
+		"Write content to a file; creates or overwrites; parent dirs auto-created.",
+	],
+	[
+		"Command to run next on this file after the edit succeeds — e.g. run, build, start/restart, install, or check it; optional timeout in seconds. Skipped if the edit fails; a non-zero exit is reported but keeps the edit.",
+		"Bash command run after the edit succeeds; skipped if the edit fails.",
+	],
+	[
+		"Command to run next on this file after the write succeeds — e.g. run, build, start/restart, install, or check it; optional timeout in seconds. Skipped if the write fails; a non-zero exit is reported but keeps the write.",
+		"Bash command run after the write succeeds; skipped if the write fails.",
+	],
+	[
+		"One or more targeted replacements. Each edit is matched against the original file, not incrementally. Do not include overlapping or nested edits. If two changes touch the same block or nearby lines, merge them into one edit instead.",
+		"Matched against the original file; no overlap or nesting; merge nearby changes.",
+	],
+	[
+		"Exact text for one targeted replacement. It must be unique in the original file and must not overlap with any other edits[].oldText in the same call.",
+		"Exact text, unique in the file.",
+	],
+	[
+		"Replacement text for this targeted edit.",
+		"Replacement text for this edit.",
+	],
+	[
+		"Read the contents of a file. Supports text files and images (jpg, png, gif, webp, bmp). Images are sent as attachments. For text files, output is truncated to 2000 lines or 50KB (whichever is hit first). Use offset/limit for large files. When you need the full file, continue with offset until complete.",
+		"Read a file. Text truncated to 2000 lines or 50KB; images sent as attachments. Page large files with offset/limit.",
+	],
+	[
+		"# Tool discovery\n\nSearches over deferred tool metadata with BM25 and exposes matching tools for the next model call.\n\nSome of the tools, such as tools of MCP servers, may not have been provided to you upfront, and you should use this tool (`tool_search`) to search for the required tools. For MCP tool discovery, always use `tool_search`.",
+		"# Tool discovery\n\nSearch deferred tools; exposes matches for the next call. Always use it for MCP tools.",
+	],
+	[
+		"List available skills (no arguments) or load one skill's full instructions by name.",
+		"List skills, or load one skill's SKILL.md by name.",
+	],
+	[
+		"Skill name. Omit to list all skills with full descriptions.",
+		"Skill name; omit to list all.",
+	],
+	[
+		"Persistent TODO memory. Actions: list, add, done, drop, why.",
+		"TODO memory; actions: list/add/done/drop/why.",
+	],
+];
 
 const UNESCAPE: Record<string, string> = {
 	"&amp;": "&",
@@ -33,6 +89,9 @@ function escapeXml(s: string): string {
 function firstSentences(raw: string, cap: number): string {
 	let s = raw.trim();
 	for (const [ent, ch] of Object.entries(UNESCAPE)) s = s.split(ent).join(ch);
+	for (const [from, to] of DESCRIPTION_REWRITES) {
+		if (s === from) return escapeXml(to);
+	}
 	if (s.length <= cap) return escapeXml(s);
 	const slice = s.slice(0, cap + 1);
 	const sent = slice.match(/^[\s\S]*?[.!?](?=\s|$)/);
