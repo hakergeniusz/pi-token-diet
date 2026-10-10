@@ -8,7 +8,9 @@ Trims (measured against pi 0.99.2, `o200k_base`):
 - the "Pi documentation" block in the system prompt (~309 tok) — only relevant
   when working on pi itself
 - tool descriptions capped (~220 chars) and JSON-schema property descriptions
-  capped (~100 chars) across every declared tool
+  capped (~72 chars) across every declared tool
+- canned short replacements for known verbose boilerplate descriptions
+  (edit/write/read/tool_search/skill_load/memo and the SoL-Pi `then_run` texts)
 - `<available_skills>` descriptions to their first sentence (~140 chars)
 
 Description trimming keeps the first complete sentence when it fits the cap,
